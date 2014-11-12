@@ -21,23 +21,17 @@ ADHD.run_as_admin()
 ; ============================================================================================
 ; CONFIG SECTION - Configure ADHD
 
-; Authors - Edit this section to configure ADHD according to your macro.
-; You should not add extra things here (except add more records to hotkey_list etc)
-; Also you should generally not delete things here - set them to a different value instead
-
 ; You may need to edit these depending on game
 SendMode, Event
 SetKeyDelay, 0, 50
 
-ADHD.config_ignore_noaction_warning()
-
 ; Stuff for the About box
 
-ADHD.config_about({name: "Mixer", version: 0.1, author: "evilC", link: "<a href=""http://evilc.com/proj/adhd"">Homepage</a>"})
+ADHD.config_about({name: "OneSwitch Mix", version: 1.0.0, author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
 ; The default application to limit hotkeys to.
 
 ; GUI size
-ADHD.config_size(375,650)
+ADHD.config_size(375,700)
 
 ; Hook into ADHD events
 ; First parameter is name of event to hook into, second parameter is a function name to launch on that event
@@ -57,19 +51,22 @@ Gui, Tab, 1
 ; ============================================================================================
 ; GUI SECTION
 
-Gui, Add, Button, x5 y40 w360 h50 center gFunctionalityToggle, ENABLE / DISABLE
+; Add the GUI for vJoy selection
+ADHD.add_vjoy_select()
+
+Gui, Add, Button, x5 y60 w360 h50 center gFunctionalityToggle, ENABLE / DISABLE
 
 ;Gui, font, italic
 ;Gui, Add, Text, x15 y60 w300, Note: Bindings are just shown here for convenience.`nChange bindings on the Bindings Tab!
 ;Gui, font, norm
 
-Gui, Add, Text, x15 y100 center, Input
+Gui, Add, Text, x15 y130 center, Input
 Gui, Add, Text, x60 yp-5 w180 center, Current Binding`n(Bind on Bindings Tab)
 Gui, Add, Text, x270 yp center, Output`nButton
 Gui, Add, Text, x330 yp center, Latch`nMode
 
 Loop 16 {
-	y := 100 + (A_Index * 30)
+	y := 130 + (A_Index * 30)
 	Gui, Add, Text, x15 y%y% w20 center, %A_Index%
 	Gui, Add, Edit, x60 yp-5 w180 disabled vBinding%A_Index%
 	ADHD.gui_add("DropDownList", "Output" A_Index, "x260 yp W50", ButtonString, A_Index)
@@ -78,42 +75,34 @@ Loop 16 {
 ; End GUI creation section
 ; ============================================================================================
 
-; ID of the virtual stick (1st virtual stick is 1)
-vjoy_id := 1
-
-; Init Vjoy library
-VJoy_Init(vjoy_id)
-; End vjoy setup
-
 ADHD.finish_startup()
 
 ; Find max nunmber of buttons supported by vjoy stick
-max_buttons := VJoy_GetVJDButtonNumber(vjoy_id)
 
 return
 
 InputPressed(input){
-	global vjoy_id
+	global ADHD
 	global latch_states, output_buttons, output_states
 
 	;msgbox % input " Pressed!"
 	if (latch_states[input]){
 		; Button is latched mode
 		output_states[input] := !output_states[input]
-		VJoy_SetBtn(output_states[input], vjoy_id, output_buttons[input])
+		VJoy_SetBtn(output_states[input], ADHD.vjoy_id, output_buttons[input])
 	} else {
 		; Straight Pass-Through mode
-		VJoy_SetBtn(1, vjoy_id, output_buttons[input])
+		VJoy_SetBtn(1, ADHD.vjoy_id, output_buttons[input])
 	}
 }
 
 InputReleased(input){
-	global vjoy_id
+	global ADHD
 	global latch_states, output_buttons, output_states
 
 	if (!latch_states[input]){
 		; Straight Pass-Through mode
-		VJoy_SetBtn(0, vjoy_id, output_buttons[input])
+		VJoy_SetBtn(0, ADHD.vjoy_id, output_buttons[input])
 	}
 
 }
@@ -255,12 +244,12 @@ Input16Up:
 
 ; This is called when any of the config options change. Also called once at start
 option_changed_hook(){
-	global max_buttons
-	global vjoy_id
+	global ADHD
 
 	global latch_states
 	global output_buttons
 
+	; Build handy lookup array for state of latches and buttons
 	latch_states := []
 	output_buttons := []
 
@@ -273,13 +262,17 @@ option_changed_hook(){
 
 		GuiControlGet,val,,Output%A_Index%
 		output_buttons[A_Index] := val
-
 	}
 
-	; Release all buttons
-	Loop %max_buttons% {
-		VJoy_SetBtn(0, vjoy_id, A_Index)
+	; Release Buttons
+	if (ADHD.vjoy_ready){
+		Loop % VJoy_GetVJDButtonNumber(ADHD.vjoy_id) {
+			VJoy_SetBtn(0, ADHD.vjoy_id, A_Index)
+		}
 	}
+
+	; Change joysticks
+	ADHD.connect_to_vjoy()
 
 }
 

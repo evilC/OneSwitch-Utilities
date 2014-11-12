@@ -23,24 +23,17 @@ Loop 32 {
 ; ============================================================================================
 ; CONFIG SECTION - Configure ADHD
 
-; Authors - Edit this section to configure ADHD according to your macro.
-; You should not add extra things here (except add more records to hotkey_list etc)
-; Also you should generally not delete things here - set them to a different value instead
-
 ; You may need to edit these depending on game
 SendMode, Event
 SetKeyDelay, 0, 50
 
 ; Stuff for the About box
 
-ADHD.config_about({name: "OneSwitch Pulse", version: 1.0, author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
+ADHD.config_about({name: "OneSwitch Pulse", version: 1.0.0, author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
 ; The default application to limit hotkeys to.
 
 ; GUI size
-ADHD.config_size(375,250)
-
-; We need no actions, so disable warning
-ADHD.config_ignore_noaction_warning()
+ADHD.config_size(375,270)
 
 ; Hook into ADHD events
 ; First parameter is name of event to hook into, second parameter is a function name to launch on that event
@@ -59,6 +52,9 @@ ADHD.create_gui()
 Gui, Tab, 1
 ; ============================================================================================
 ; GUI SECTION
+
+; Add the GUI for vJoy selection
+ADHD.add_vjoy_select()
 
 Gui, Add, GroupBox, x5 yp+30 W365 R4 section, Output Configuration
 
@@ -94,30 +90,18 @@ Gui, Add, Text, xp+40 yp vPulseState,
 ; End GUI creation section
 ; ============================================================================================
 
-; Load vJoy DLL
-;LoadPackagedLibrary()
-;VJoy_LoadLibrary()
-
-; ID of the virtual stick (1st virtual stick is 1)
-vjoy_id := 1
-
-; Init Vjoy library
-VJoy_Init(vjoy_id)
-; End vjoy setup
-
 ADHD.finish_startup()
-
-; Find max nunmber of buttons supported by vjoy stick
-max_buttons := VJoy_GetVJDButtonNumber(vjoy_id)
 
 ; Pass through other buttons 1:1
 Loop {
-	Loop %max_buttons% {
-		if (A_Index != ChoiceButtonOut && A_Index != PulseButton && A_Index != TimeoutButton){
-			if (getkeystate(JoyPrefix A_Index)){
-				VJoy_SetBtn(1, vjoy_id, A_Index)
-			} else {
-				VJoy_SetBtn(0, vjoy_id, A_Index)
+	if (ADHD.vjoy_ready){	; only manipulate buttons if this stick is connected.
+		Loop %max_buttons% {
+			if (A_Index != ChoiceButtonOut && A_Index != PulseButton && A_Index != TimeoutButton){
+				if (getkeystate(JoyPrefix A_Index)){
+					VJoy_SetBtn(1, ADHD.vjoy_id, A_Index)
+				} else {
+					VJoy_SetBtn(0, ADHD.vjoy_id, A_Index)
+				}
 			}
 		}
 	}
@@ -131,7 +115,7 @@ return
 ; Choice Button pressed
 ChoiceMade:
 	; Press virtual choice button
-	VJoy_SetBtn(1, vjoy_id, ChoiceButtonOut)
+	VJoy_SetBtn(1, ADHD.vjoy_id, ChoiceButtonOut)
 	
 	; Stop the pulse
 	SetTimer, Pulse, Off
@@ -146,7 +130,7 @@ ChoiceMade:
 ; Choice Button Released
 ChoiceMadeUp:
 	; Release virtual button
-	VJoy_SetBtn(0, vjoy_id, ChoiceButtonOut)
+	VJoy_SetBtn(0, ADHD.vjoy_id, ChoiceButtonOut)
 
 	; Resume the pulse
 	SetTimer, Pulse, %PulseRate%
@@ -160,7 +144,7 @@ ChoiceMadeUp:
 ; Do a pulse
 Pulse:
 	; Press the virtual pulse button
-	VJoy_SetBtn(1, vjoy_id, PulseButton)
+	VJoy_SetBtn(1, ADHD.vjoy_id, PulseButton)
 
 	; debug output
 	GuiControl,, PulseState, *
@@ -169,7 +153,7 @@ Pulse:
 	Sleep 50
 
 	; Release the virtual pulse button
-	VJoy_SetBtn(0, vjoy_id, PulseButton)
+	VJoy_SetBtn(0, ADHD.vjoy_id, PulseButton)
 
 	; Debug output
 	GuiControl,, PulseState, 
@@ -178,13 +162,13 @@ Pulse:
 ; This handles what happens when TimeOut is hit
 Timeout:
 	; Press the virtual timeout button
-	VJoy_SetBtn(1, vjoy_id, TimeoutButton)
+	VJoy_SetBtn(1, ADHD.vjoy_id, TimeoutButton)
 	
 	; Wait for a bit so the press has a chance to register
 	Sleep 50
 
 	; Release the virtual timeout button
-	VJoy_SetBtn(0, vjoy_id, TimeoutButton)
+	VJoy_SetBtn(0, ADHD.vjoy_id, TimeoutButton)
 	
 	return
 
@@ -192,17 +176,25 @@ Timeout:
 
 ; Bind Mode was enabled. Stop pulsing so the virtual stick does not get bound as an input accidentally
 bind_mode_on_hook(){
-	SetTimer, Pulse, Off
-	SetTimer, Timeout, Off
+	stop_timers()
 }
 
 bind_mode_off_hook(){
+	start_timers()
+}
+
+start_timers(){
 	global PulseRate
 	global TimeoutRate
 
 	; Start Pulsing again
 	SetTimer, Pulse, %PulseRate%
 	SetTimer, Timeout, %TimeoutRate%
+}
+
+stop_timers(){
+	SetTimer, Pulse, Off
+	SetTimer, Timeout, Off
 }
 
 ; This is called when any of the config options change. Also called once at start
@@ -215,23 +207,30 @@ option_changed_hook(){
 	global PulseRate
 	global TimeoutRate
 	global JoyPrefix
-	global vjoy_id
 	global max_buttons
 
 	; Stop Pulsing
-	SetTimer, Pulse, Off
-	SetTimer, Timeout, Off
-	
-	; Release all buttons
-	Loop %max_buttons% {
-		VJoy_SetBtn(0, vjoy_id, A_Index)
+	stop_timers()
+
+	; Release Buttons
+	if (ADHD.vjoy_ready){
+		Loop % VJoy_GetVJDButtonNumber(ADHD.vjoy_id) {
+			VJoy_SetBtn(0, ADHD.vjoy_id, A_Index)
+		}
+	}
+
+	ADHD.connect_to_vjoy()
+
+	if (ADHD.vjoy_ready){
+		max_buttons := VJoy_GetVJDButtonNumber(ADHD.vjoy_id)
+	} else {
+		max_buttons := 0
 	}
 
 	; Start Pulsing again - possibly with new values
-	SetTimer, Pulse, %PulseRate%
-	SetTimer, Timeout, %TimeoutRate%
-
+	start_timers()
 }
+
 
 ; KEEP THIS AT THE END!!
 ;#Include ADHDLib.ahk		; If you have the library in the same folder as your macro, use this
