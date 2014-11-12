@@ -1,6 +1,6 @@
-#OneSwitch-Pulse
+#OneSwitch-Utilities
 
-A Utility to send pulses to a virtual joystick.
+A Set of Utilities to help disabled / impaired people use computers
 
 Funded by OneSwitch - http://oneswitch.org.uk
 
