@@ -52,7 +52,9 @@ Gui, Tab, 1
 ; GUI SECTION
 
 ; Add the GUI for vJoy selection
-ADHD.add_vjoy_select()
+Gui, Add, Text, x15 y40, vJoy Stick ID
+ADHD.gui_add("DropDownList", "selected_virtual_stick", "xp+70 yp-5 w50 h20 R9", "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16", "1")
+Gui, Add, Text, xp+60 yp+5 w200 vadhd_virtual_stick_status, 
 
 Gui, Add, Button, x5 y60 w360 h50 center gFunctionalityToggle, ENABLE / DISABLE
 
@@ -82,27 +84,27 @@ ADHD.finish_startup()
 return
 
 InputPressed(input){
-	global ADHD
+	global ADHD, vjoy_id
 	global latch_states, output_buttons, output_states
 
 	;msgbox % input " Pressed!"
 	if (latch_states[input]){
 		; Button is latched mode
 		output_states[input] := !output_states[input]
-		VJoy_SetBtn(output_states[input], ADHD.vjoy_id, output_buttons[input])
+		VJoy_SetBtn(output_states[input], vjoy_id, output_buttons[input])
 	} else {
 		; Straight Pass-Through mode
-		VJoy_SetBtn(1, ADHD.vjoy_id, output_buttons[input])
+		VJoy_SetBtn(1, vjoy_id, output_buttons[input])
 	}
 }
 
 InputReleased(input){
-	global ADHD
+	global ADHD, vjoy_id
 	global latch_states, output_buttons, output_states
 
 	if (!latch_states[input]){
 		; Straight Pass-Through mode
-		VJoy_SetBtn(0, ADHD.vjoy_id, output_buttons[input])
+		VJoy_SetBtn(0, vjoy_id, output_buttons[input])
 	}
 
 }
@@ -245,6 +247,7 @@ Input16Up:
 ; This is called when any of the config options change. Also called once at start
 option_changed_hook(){
 	global ADHD
+	global vjoy_id, vjoy_is_ready
 
 	global latch_states
 	global output_buttons
@@ -265,14 +268,14 @@ option_changed_hook(){
 	}
 
 	; Release Buttons
-	if (ADHD.vjoy_ready){
-		Loop % VJoy_GetVJDButtonNumber(ADHD.vjoy_id) {
-			VJoy_SetBtn(0, ADHD.vjoy_id, A_Index)
+	if (vjoy_is_ready){
+		Loop % VJoy_GetVJDButtonNumber(vjoy_id) {
+			VJoy_SetBtn(0, vjoy_id, A_Index)
 		}
 	}
 
 	; Change joysticks
-	ADHD.connect_to_vjoy()
+	connect_to_vjoy()
 
 }
 
@@ -285,6 +288,53 @@ functionality_toggled_hook(){
 		Gui, Color, EEAA99
 	}
 
+}
+
+; Connect to vJoy stick.
+connect_to_vjoy(){
+	;global ADHD, this.vjoy_id ; What ID we are connected to now
+	global vjoy_id, vjoy_is_ready
+	global selected_virtual_stick	; What ID is selected in the UI
+	;global adhd_vjoy_ready ;store this global, so loops outside can see whether vjoy is ready or not.
+	; Connect to virtual stick
+	if (vjoy_id != selected_virtual_stick){
+
+		if (VJoy_Ready(vjoy_id)){
+			VJoy_RelinquishVJD(vjoy_id)
+			VJoy_Close()
+		}
+		vjoy_id := selected_virtual_stick
+		vjoy_status := DllCall("vJoyInterface\GetVJDStatus", "UInt", vjoy_id)
+		if (vjoy_status == 2){
+			GuiControl, +Cred, adhd_virtual_stick_status
+			GuiControl, , adhd_virtual_stick_status, Busy - Other app controlling this device?
+		}  else if (vjoy_status >= 3){
+			; 3-4 not available
+			GuiControl, +Cred, adhd_virtual_stick_status
+			GuiControl, , adhd_virtual_stick_status, Not Available - Add more virtual sticks using the vJoy config app
+		} else if (vjoy_status == 0){
+			; already owned by this app - should not come here as we want to release non used sticks
+			GuiControl, +Cred, adhd_virtual_stick_status
+			GuiControl, , adhd_virtual_stick_status, Already Owned by this app (Should not see this!)
+		}
+		if (vjoy_status <= 1){
+			VJoy_Init(vjoy_id)
+			if (VJoy_Ready(vjoy_id)){
+				; Seem to need this to allow reconnecting to sticks (ie you selected id 1 then 2 then 1 again. Else control of stick does not resume
+				VJoy_AcquireVJD(vjoy_id)
+				VJoy_ResetVJD(vjoy_id)
+				vjoy_is_ready := 1
+				GuiControl, +Cgreen, adhd_virtual_stick_status
+				GuiControl, , adhd_virtual_stick_status, Connected
+			} else {
+				GuiControl, +Cred, adhd_virtual_stick_status
+				GuiControl, , adhd_virtual_stick_status, Problem Connecting
+				vjoy_is_ready := 0
+			}
+		} else {
+			vjoy_is_ready := 0
+		}
+	}
 }
 
 ; KEEP THIS AT THE END!!
