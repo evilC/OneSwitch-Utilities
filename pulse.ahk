@@ -5,6 +5,9 @@
 
 ADHD := New ADHDLib
 
+; Ensure running as admin
+ADHD.run_as_admin()
+
 ; Store the value of the Choice Button so that if the user changes binding, we can remove the old binding
 LastChoiceButton := ""
 

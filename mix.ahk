@@ -1,5 +1,6 @@
 ﻿#Singleinstance force
-#include VJoyLib\VJoy_lib.ahk
+;#include VJoyLib\VJoy_lib.ahk
+#include <VJoy_lib>
 
 output_states := []
 
@@ -13,6 +14,9 @@ Loop 32 {
 
 ; Create an instance of the library
 ADHD := New ADHDLib
+
+; Ensure running as admin
+ADHD.run_as_admin()
 
 ; ============================================================================================
 ; CONFIG SECTION - Configure ADHD
