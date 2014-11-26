@@ -29,7 +29,7 @@ SetKeyDelay, 0, 50
 
 ; Stuff for the About box
 
-ADHD.config_about({name: "OneSwitch Pulse", version: 1.0.0, author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
+ADHD.config_about({name: "OneSwitch Pulse", version: "1.0.0", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
 ; The default application to limit hotkeys to.
 
 ; GUI size
