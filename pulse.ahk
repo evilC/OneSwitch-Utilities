@@ -40,6 +40,7 @@ ADHD.config_size(375,270)
 ADHD.config_event("option_changed", "option_changed_hook")
 ADHD.config_event("bind_mode_on", "bind_mode_on_hook")
 ADHD.config_event("bind_mode_off", "bind_mode_off_hook")
+ADHD.config_event("functionality_toggled", "functionality_toggle_hook")
 
 ADHD.config_hotkey_add({uiname: "Choice Button", subroutine: "ChoiceMade"})
 adhd_hk_k_1_TT := "ChoiceMade"
@@ -163,6 +164,8 @@ Pulse:
 
 ; This handles what happens when TimeOut is hit
 Timeout:
+	stop_timers()
+	
 	; Press the virtual timeout button
 	VJoy_SetBtn(1, vjoy_id, TimeoutButton)
 	
@@ -171,6 +174,8 @@ Timeout:
 
 	; Release the virtual timeout button
 	VJoy_SetBtn(0, vjoy_id, TimeoutButton)
+	
+	start_timers()
 	
 	return
 
@@ -278,6 +283,15 @@ connect_to_vjoy(){
 		} else {
 			vjoy_is_ready := 0
 		}
+	}
+}
+
+functionality_toggle_hook(){
+	global ADHD
+	if (ADHD.private.functionality_enabled){
+		start_timers()
+	} else {
+		stop_timers()
 	}
 }
 
