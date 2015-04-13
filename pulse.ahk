@@ -86,11 +86,6 @@ ADHD.gui_add("CheckBox", "TimeoutWarningEnabled", "xp+100 yp W50", "", 0)
 Gui, Add, Text, xp+100 yp, Warning Time (ms)
 ADHD.gui_add("Edit", "TimeoutWarningTime", "xp+100 yp-5 W50", "", "24000")
 
-;ADHD.gui_add("CheckBox", "TimeoutWarning", "")
-;ADHD.gui_add("CheckBox", "AdvZoom", "x15"  " yp+30", "Enable Adv Zoom Module", 0)
-;Gui, Add, Checkbox
-
-
 
 Gui, Add, GroupBox, x5 yp+40 W180 R2 section, Misc Config
 Gui, Add, GroupBox, x190 yp W180 R2 section, Debug
@@ -135,13 +130,6 @@ ChoiceMade:
 	; Press virtual choice button
 	VJoy_SetBtn(1, vjoy_id, ChoiceButtonOut)
 	
-	/*
-	; Stop the pulse
-	SetTimer, Pulse, Off
-	
-	; Reset the Timeout
-	SetTimer, Timeout, %TimeoutRate%
-	*/
 	; Stop the timers while the button is held
 	stop_timers()
 
@@ -153,11 +141,6 @@ ChoiceMade:
 ChoiceMadeUp:
 	; Release virtual button
 	VJoy_SetBtn(0, vjoy_id, ChoiceButtonOut)
-	
-	/*
-	; Resume the pulse
-	SetTimer, Pulse, %PulseRate%
-	*/
 	
 	; Resume the timers when the button is released.
 	start_timers()
