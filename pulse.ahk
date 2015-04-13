@@ -70,15 +70,15 @@ ADHD.gui_add("DropDownList", "ChoiceButtonOut", "xp+80 yp-5 W50", ButtonString, 
 ChoiceButtonOut_TT := ""
 
 Gui, Add, Text, xp+100 yp+5, Pulse Button
-ADHD.gui_add("DropDownList", "PulseButton", "xp+80 yp-5 W50", ButtonString, "2")
+ADHD.gui_add("DropDownList", "PulseButton", "xp+80 yp-5 W50", ButtonString, "22")
 PulseButton_TT := ""
 
 Gui, Add, Text, x15 yp+40, Timeout (ms)
-ADHD.gui_add("Edit", "TimeoutRate", "xp+80 yp-5 W50", "", "3000")
+ADHD.gui_add("Edit", "TimeoutRate", "xp+80 yp-5 W50", "", "25000")
 ;TimeoutRate_TT := ""
 
 Gui, Add, Text, xp+100 yp+5, Timeout Button
-ADHD.gui_add("DropDownList", "TimeoutButton", "xp+80 yp-5 W50", ButtonString, "3")
+ADHD.gui_add("DropDownList", "TimeoutButton", "xp+80 yp-5 W50", ButtonString, "23")
 TimeoutButton_TT := ""
 
 Gui, Add, GroupBox, x5 yp+40 W180 R2 section, Misc Config
