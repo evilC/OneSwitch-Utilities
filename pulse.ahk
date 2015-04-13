@@ -29,11 +29,11 @@ SetKeyDelay, 0, 50
 
 ; Stuff for the About box
 
-ADHD.config_about({name: "OneSwitch Pulse", version: "1.0.2", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
+ADHD.config_about({name: "OneSwitch Pulse", version: "1.0.3", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
 ; The default application to limit hotkeys to.
 
 ; GUI size
-ADHD.config_size(375,340)
+ADHD.config_size(375,380)
 
 ; Hook into ADHD events
 ; First parameter is name of event to hook into, second parameter is a function name to launch on that event
@@ -63,23 +63,34 @@ Gui, Add, GroupBox, x5 yp+30 W365 R2 section, Input Configuration
 Gui, Add, Text, x15 yp+30, Pass through unused buttons from stick ID
 ADHD.gui_add("DropDownList", "ButtonPassThroughStick", "xp+220 yp-5 W50", "None|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16", "None")
 
-Gui, Add, GroupBox, x5 yp+46 W365 R4 section, Output Configuration
+Gui, Add, GroupBox, x5 yp+46 W365 R6 section, Output Configuration
 
 Gui, Add, Text, x15 yp+30, Choice Button
-ADHD.gui_add("DropDownList", "ChoiceButtonOut", "xp+80 yp-5 W50", ButtonString, "1")
+ADHD.gui_add("DropDownList", "ChoiceButtonOut", "xp+100 yp-5 W50", ButtonString, "1")
 ChoiceButtonOut_TT := ""
 
 Gui, Add, Text, xp+100 yp+5, Pulse Button
-ADHD.gui_add("DropDownList", "PulseButton", "xp+80 yp-5 W50", ButtonString, "22")
+ADHD.gui_add("DropDownList", "PulseButton", "xp+100 yp-5 W50", ButtonString, "22")
 PulseButton_TT := ""
 
 Gui, Add, Text, x15 yp+40, Timeout (ms)
-ADHD.gui_add("Edit", "TimeoutRate", "xp+80 yp-5 W50", "", "25000")
-;TimeoutRate_TT := ""
+ADHD.gui_add("Edit", "TimeoutRate", "xp+100 yp-5 W50", "", "25000")
 
 Gui, Add, Text, xp+100 yp+5, Timeout Button
-ADHD.gui_add("DropDownList", "TimeoutButton", "xp+80 yp-5 W50", ButtonString, "23")
+ADHD.gui_add("DropDownList", "TimeoutButton", "xp+100 yp-5 W50", ButtonString, "23")
 TimeoutButton_TT := ""
+
+Gui, Add, Text, x15 yp+40, Timeout Warning
+ADHD.gui_add("CheckBox", "TimeoutWarningEnabled", "xp+100 yp W50", "", 0)
+
+Gui, Add, Text, xp+100 yp, Warning Time (ms)
+ADHD.gui_add("Edit", "TimeoutWarningTime", "xp+100 yp-5 W50", "", "24000")
+
+;ADHD.gui_add("CheckBox", "TimeoutWarning", "")
+;ADHD.gui_add("CheckBox", "AdvZoom", "x15"  " yp+30", "Enable Adv Zoom Module", 0)
+;Gui, Add, Checkbox
+
+
 
 Gui, Add, GroupBox, x5 yp+40 W180 R2 section, Misc Config
 Gui, Add, GroupBox, x190 yp W180 R2 section, Debug
@@ -124,11 +135,15 @@ ChoiceMade:
 	; Press virtual choice button
 	VJoy_SetBtn(1, vjoy_id, ChoiceButtonOut)
 	
+	/*
 	; Stop the pulse
 	SetTimer, Pulse, Off
 	
 	; Reset the Timeout
 	SetTimer, Timeout, %TimeoutRate%
+	*/
+	; Stop the timers while the button is held
+	stop_timers()
 
 	; Set debug output
 	GuiControl,, ChoiceState, *
@@ -138,10 +153,15 @@ ChoiceMade:
 ChoiceMadeUp:
 	; Release virtual button
 	VJoy_SetBtn(0, vjoy_id, ChoiceButtonOut)
-
+	
+	/*
 	; Resume the pulse
 	SetTimer, Pulse, %PulseRate%
-
+	*/
+	
+	; Resume the timers when the button is released.
+	start_timers()
+	
 	; Debug output
 	GuiControl,, ChoiceState, 
 	return
@@ -183,6 +203,10 @@ Timeout:
 	
 	return
 
+TimeoutWarning:
+	SoundBeep 1000, 100
+	return
+
 ; === Hooks into ADHD stuff	
 
 ; Bind Mode was enabled. Stop pulsing so the virtual stick does not get bound as an input accidentally
@@ -197,15 +221,20 @@ bind_mode_off_hook(){
 start_timers(){
 	global PulseRate
 	global TimeoutRate
+	global TimeoutWarningEnabled, TimeoutWarningTime
 
 	; Start Pulsing again
 	SetTimer, Pulse, %PulseRate%
 	SetTimer, Timeout, %TimeoutRate%
+	if (TimeoutWarningEnabled){
+		SetTimer, TimeoutWarning, %TimeoutWarningTime%
+	}
 }
 
 stop_timers(){
 	SetTimer, Pulse, Off
 	SetTimer, Timeout, Off
+	SetTimer, TimeoutWarning, Off
 }
 
 ; This is called when any of the config options change. Also called once at start
