@@ -29,7 +29,7 @@ SetKeyDelay, 0, 50
 
 ; Stuff for the About box
 
-ADHD.config_about({name: "OneSwitch Pulse", version: "1.0.3", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
+ADHD.config_about({name: "OneSwitch Pulse", version: "1.0.4", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
 ; The default application to limit hotkeys to.
 
 ; GUI size
@@ -243,6 +243,11 @@ option_changed_hook(){
 		}
 	}
 
+	; Quit at this point if functionality disabled
+	if (!ADHD.private.functionality_enabled){
+		return
+	}
+
 	connect_to_vjoy()
 
 	if (vjoy_is_ready){
@@ -303,12 +308,7 @@ connect_to_vjoy(){
 }
 
 functionality_toggle_hook(){
-	global ADHD
-	if (ADHD.private.functionality_enabled){
-		start_timers()
-	} else {
-		stop_timers()
-	}
+	option_changed_hook()
 }
 
 ; KEEP THIS AT THE END!!
