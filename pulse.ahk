@@ -33,7 +33,7 @@ ADHD.config_about({name: "OneSwitch Pulse", version: "1.0.1", author: "evilC", l
 ; The default application to limit hotkeys to.
 
 ; GUI size
-ADHD.config_size(375,270)
+ADHD.config_size(375,340)
 
 ; Hook into ADHD events
 ; First parameter is name of event to hook into, second parameter is a function name to launch on that event
@@ -59,7 +59,11 @@ Gui, Add, Text, x15 y40, vJoy Stick ID
 ADHD.gui_add("DropDownList", "selected_virtual_stick", "xp+70 yp-5 w50 h20 R9", "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16", "1")
 Gui, Add, Text, xp+60 yp+5 w200 vadhd_virtual_stick_status, 
 
-Gui, Add, GroupBox, x5 yp+30 W365 R4 section, Output Configuration
+Gui, Add, GroupBox, x5 yp+30 W365 R2 section, Input Configuration
+Gui, Add, Text, x15 yp+30, Pass through unused buttons from stick ID
+ADHD.gui_add("DropDownList", "ButtonPassThroughStick", "xp+220 yp-5 W50", "None|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16", "None")
+
+Gui, Add, GroupBox, x5 yp+46 W365 R4 section, Output Configuration
 
 Gui, Add, Text, x15 yp+30, Choice Button
 ADHD.gui_add("DropDownList", "ChoiceButtonOut", "xp+80 yp-5 W50", ButtonString, "1")
@@ -97,10 +101,10 @@ ADHD.finish_startup()
 
 ; Pass through other buttons 1:1
 Loop {
-	if (vjoy_is_ready){	; only manipulate buttons if this stick is connected.
+	if (ButtonPassThroughStick != "none" && vjoy_is_ready){	; only manipulate buttons if this stick is connected.
 		Loop %max_buttons% {
 			if (A_Index != ChoiceButtonOut && A_Index != PulseButton && A_Index != TimeoutButton){
-				if (getkeystate(JoyPrefix A_Index)){
+				if (getkeystate(ButtonPassThroughStick "Joy" A_Index)){
 					VJoy_SetBtn(1, vjoy_id, A_Index)
 				} else {
 					VJoy_SetBtn(0, vjoy_id, A_Index)
