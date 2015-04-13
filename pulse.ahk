@@ -91,7 +91,7 @@ Gui, Add, GroupBox, x5 yp+40 W180 R2 section, Misc Config
 Gui, Add, GroupBox, x190 yp W180 R2 section, Debug
 
 Gui, Add, Text, x15 yp+30, Pulse Rate (ms)
-ADHD.gui_add("Edit", "PulseRate", "xp+80 yp-5 W50", "", "1000")
+ADHD.gui_add("Edit", "PulseRate", "xp+80 yp-5 W50", "", "1500")
 PulseRate_TT := "The rate at which to pulse (in ms)"
 
 Gui, Add, Text, x195 yp+5, Choice: 
