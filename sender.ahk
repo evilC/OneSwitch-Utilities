@@ -1,11 +1,14 @@
 #SingleInstance force
 
+run_as_admin()
+
 ; These lines configure which script to send the message to
 SetTitleMatchMode, 1
 TargetScriptTitle := "OneSwitch Pulse"
 
 ; Test: Configure a hotkey to send a message to the other script.
-#space::
+2Joy5::
+2Joy6::
 	Send_WM_COPYDATA("TimeoutReset", TargetScriptTitle)
 	return
 
@@ -28,3 +31,15 @@ Send_WM_COPYDATA(ByRef StringToSend, ByRef TargetScriptTitle)  ; ByRef saves a l
     SetTitleMatchMode %Prev_TitleMatchMode%         ; Same.
     return ErrorLevel  ; Return SendMessage's reply back to our caller.
 }
+
+run_as_admin(){
+	Global 0
+	IfEqual, A_IsAdmin, 1, Return 0
+	Loop, %0% {
+		params .= A_Space . %A_Index%
+	}
+	DllCall("shell32\ShellExecute" (A_IsUnicode ? "":"A"),uint,0,str,"RunAs",str,(A_IsCompiled ? A_ScriptFullPath
+		: A_AhkPath),str,(A_IsCompiled ? "": """" . A_ScriptFullPath . """" . A_Space) params,str,A_WorkingDir,int,1)
+	ExitApp
+}
+
