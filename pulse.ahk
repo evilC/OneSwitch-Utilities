@@ -105,6 +105,8 @@ Gui, Add, Text, xp+40 yp vPulseState,
 
 ADHD.finish_startup()
 
+OnMessage(0x4a, "Receive_WM_COPYDATA")  ; 0x4a is WM_COPYDATA
+
 ; Pass through other buttons 1:1
 Loop {
 	if (ButtonPassThroughStick != "none" && vjoy_is_ready){	; only manipulate buttons if this stick is connected.
@@ -309,6 +311,16 @@ connect_to_vjoy(){
 
 functionality_toggle_hook(){
 	option_changed_hook()
+}
+
+Receive_WM_COPYDATA(wParam, lParam){
+    StringAddress := NumGet(lParam + 2*A_PtrSize)  ; Retrieves the CopyDataStruct's lpData member.
+    CopyOfData := StrGet(StringAddress)  ; Copy the string out of the structure.
+	if (CopyOfData = "TimeoutReset"){
+		stop_timers()
+		start_timers()
+	}
+    return true  ; Returning 1 (true) is the traditional way to acknowledge this message.
 }
 
 ; KEEP THIS AT THE END!!
