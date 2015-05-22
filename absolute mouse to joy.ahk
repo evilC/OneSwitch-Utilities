@@ -9,19 +9,25 @@ ADHD.run_as_admin()
 SetKeyDelay, 0, 50
 
 ADHD.config_about({name: "Mouse To Joy", version: "1.0.0", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
-ADHD.config_size(375,200)
+ADHD.config_size(375,250)
 ADHD.config_event("option_changed", "option_changed_hook")
 
 ADHD.config_hotkey_add({uiname: "Calibrate", subroutine: "Calibrate"})
-adhd_hk_k_1_TT := "Which Button to use for Choice button 1"
+adhd_hk_k_1_TT := "Calibrates Relative Mode"
 
 ADHD.init()
 ADHD.create_gui()
 
 Gui, Tab, 1
 
-Gui, Add, Text, xm y40, Max Mouse Move Value
+Gui, Add, GroupBox, x5 y35 w250 R2, Absolute Mode
+Gui, Add, Text, xm y60, Max Mouse Move Value
 ADHD.gui_add("Edit", "MaxMove", "xp+150 yp-2 w80", "", "4")
+Gui, Add, GroupBox, x5 yp+40 w250 R2, Relative Mode
+Gui, Add, Text, xm yp+20, Move Scale
+ADHD.gui_add("Edit", "MoveScale", "xp+150 yp-2 w80", "", "100")
+ADHD.gui_add("Radio", "AbsMode", "x280 y60 w80 Checked", "Absolute", "")
+ADHD.gui_add("Radio", "RelMode", "x280 y120 w80 ", "Relative", "")
 
 ADHD.finish_startup()
 
@@ -57,16 +63,16 @@ return
 ; Called when the mouse moved.
 ; Messages tend to contain small (+/- 1) movements, and happen frequently (~20ms)
 MouseMoved(wParam, lParam, code){
-	global MoveScale, OutputStick, CalibrateMode, MaxSeenMove
+	global CalibrateMode, MaxSeenMove
+	global AbsMode, RelMode
+	global MoveScale, OutputStick
+	global JoyPos
 	static MAX_TIME := 1000000		; Only cache values for this long.
 	; RawInput statics
 	static DeviceSize := 2 * A_PtrSize, iSize := 0, sz := 0, offsets := {x: (20+A_PtrSize*2), y: (24+A_PtrSize*2)}, uRawInput
 	
 	static axes := {x: 1, y: 2}
 	
-	SetTimer, OnTimeout, Off
-	SetTimer, OnTimeout, -20
-
 	; Find size of rawinput data - only needs to be run the first time.
 	if (!iSize){
 		r := DllCall("GetRawInputData", "UInt", lParam, "UInt", 0x10000003, "Ptr", 0, "UInt*", iSize, "UInt", 8 + (A_PtrSize * 2))
@@ -76,32 +82,37 @@ MouseMoved(wParam, lParam, code){
 	; Get RawInput data
 	r := DllCall("GetRawInputData", "UInt", lParam, "UInt", 0x10000003, "Ptr", &uRawInput, "UInt*", sz, "UInt", 8 + (A_PtrSize * 2))
 
-	for axis in axes {
-		mv := NumGet(&uRawInput, offsets[axis], "Int")
-		if (CalibrateMode){
-			if (abs(mv) > MaxSeenMove){
-				MaxSeenMove := abs(mv)
+	if (AbsMode){
+		SetTimer, OnTimeout, Off
+		SetTimer, OnTimeout, -20
+		
+		for axis in axes {
+			mv := NumGet(&uRawInput, offsets[axis], "Int")
+			if (CalibrateMode){
+				if (abs(mv) > MaxSeenMove){
+					MaxSeenMove := abs(mv)
+				}
+			} else {
+				ax := (mv * MoveScale) + 16384
+				OutputStick.SetAxisByName(ax,axis)
 			}
-		} else {
-			ax := (mv * MoveScale) + 16384
+		}
+	} else {
+		MoveMultiplier := 100
+		SetTimer, OnTimeout, Off
+		
+		for axis in axes {
+			mv := NumGet(&uRawInput, offsets[axis], "Int")
+			JoyPos[axis] += ( mv * MoveMultiplier)
+			if (JoyPos[axis] > 16384){
+				JoyPos[axis] := 16384
+			} else if (JoyPos[axis] < -16384){
+				JoyPos[axis] := -16384
+			}
+			ax := JoyPos[axis] + 16384
 			OutputStick.SetAxisByName(ax,axis)
 		}
 	}
-
-	/*
-	for axis in axes {
-		mv := NumGet(&uRawInput, offsets[axis], "Int")
-		this.JoyPos[axis] += ( mv * this.MoveMultiplier)
-		if (this.JoyPos[axis] > 16384){
-			this.JoyPos[axis] := 16384
-		} else if (this.JoyPos[axis] < -16384){
-			this.JoyPos[axis] := -16384
-		}
-		ax := this.JoyPos[axis] + 16384
-		this.OutputStick.SetAxisByName(ax,axis)
-	}
-	*/
-	
 }
 
 OnTimeout(){
@@ -128,7 +139,6 @@ Calibrate:
 option_changed_hook(){
 	global MaxMove, MoveScale
 	MoveScale := (16384 / MaxMove)
-
 }
 ; KEEP THIS AT THE END!!
 ;#Include ADHDLib.ahk		; If you have the library in the same folder as your macro, use this
