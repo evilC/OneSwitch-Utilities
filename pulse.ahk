@@ -2,7 +2,6 @@
 ;#include VJoyLib\VJoy_lib.ahk
 #include <VJoy_lib>
 ; Create an instance of the library
-
 ADHD := New ADHDLib
 
 ; Ensure running as admin
@@ -11,6 +10,8 @@ ADHD.run_as_admin()
 ; Store the value of the Choice Button so that if the user changes binding, we can remove the old binding
 ;LastChoiceButton := ""
 
+axis_list_vjoy := Array("X","Y","Z","RX","RY","RZ","SL0","SL1")
+
 ButtonString := ""
 Loop 32 {
 	ButtonString .= A_Index
@@ -18,7 +19,6 @@ Loop 32 {
 		ButtonString .= "|"
 	}
 }
-
 
 ; ============================================================================================
 ; CONFIG SECTION - Configure ADHD
@@ -29,11 +29,11 @@ SetKeyDelay, 0, 50
 
 ; Stuff for the About box
 
-ADHD.config_about({name: "OneSwitch Pulse", version: "1.1.0", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
+ADHD.config_about({name: "OneSwitch Pulse", version: "1.1.1", author: "evilC", link: "<a href=""http://oneswitch.org.uk"">Homepage</a>"})
 ; The default application to limit hotkeys to.
 
 ; GUI size
-ADHD.config_size(375,500)
+ADHD.config_size(375,575)
 
 ; Hook into ADHD events
 ; First parameter is name of event to hook into, second parameter is a function name to launch on that event
@@ -58,6 +58,12 @@ ADHD.config_hotkey_add({uiname: "Choice Button 7", subroutine: "Choice7Made"})
 adhd_hk_k_7_TT := "Which Button to use for Choice button 7"
 ADHD.config_hotkey_add({uiname: "Choice Button 8", subroutine: "Choice8Made"})
 adhd_hk_k_8_TT := "Which Button to use for Choice button 8"
+ADHD.config_hotkey_add({uiname: "Hard Pool Cue shot", subroutine: "PoolCueH"})
+adhd_hk_k_9_TT := "Performs a hard shot with the pool cue"
+ADHD.config_hotkey_add({uiname: "Med Pool Cue shot", subroutine: "PoolCueM"})
+adhd_hk_k_10_TT := "Performs a hard shot with the pool cue"
+ADHD.config_hotkey_add({uiname: "Soft Pool Cue shot", subroutine: "PoolCueS"})
+adhd_hk_k_11_TT := "Performs a hard shot with the pool cue"
 
 
 ADHD.init()
@@ -128,6 +134,27 @@ ADHD.gui_add("CheckBox", "TimeoutWarningEnabled", "xp+100 yp W50", "", 0)
 Gui, Add, Text, xp+100 yp, Warning Time (ms)
 ADHD.gui_add("Edit", "TimeoutWarningTime", "xp+100 yp-5 W50", "", "24000")
 
+; ---- pool cue
+Gui, Add, GroupBox, x5 yp+40 W365 R3 section, Pool Cue
+Gui, Add, Text, x15 yp+30, Axis
+ADHD.gui_add("DropDownList", "CueAxis", "xp+40 yp-5 W50", "1|2|3|4|5|6|7|8", "5")
+
+Gui, Add, Text, x150 yp+5, % "Rest %"
+ADHD.gui_add("Edit", "CueRest", "xp+40 yp-5 W50", "", "50")
+
+Gui, Add, Text, x275 yp+5, % "Full %"
+ADHD.gui_add("Edit", "CueFull", "xp+40 yp-5 W50", "", "100")
+
+Gui, Add, Text, x15 yp+30, % "Hard %"
+ADHD.gui_add("Edit", "CueHard", "xp+40 yp-5 W50", "", "0")
+
+Gui, Add, Text, x150 yp+5, % "Med %"
+ADHD.gui_add("Edit", "CueMed", "xp+40 yp-5 W50", "", "12.5")
+
+Gui, Add, Text, x275 yp+5, % "Soft %"
+ADHD.gui_add("Edit", "CueSoft", "xp+40 yp-5 W50", "", "25")
+
+; --- misc config
 
 Gui, Add, GroupBox, x5 yp+40 W180 R2 section, Misc Config
 Gui, Add, GroupBox, x190 yp W180 R2 section, Debug
@@ -270,6 +297,32 @@ ChoiceMadeUp(num){
 	return
 }
 
+; Pool Cue
+PoolCueH:
+	stop_timers()
+	VJoy_SetAxis(cue_hard, vjoy_id, cue_axis)
+	return
+
+PoolCueM:
+	stop_timers()
+	VJoy_SetAxis(cue_med, vjoy_id, cue_axis)
+	return
+
+PoolCueS:
+	stop_timers()
+	VJoy_SetAxis(cue_soft, vjoy_id, cue_axis)
+	return
+
+PoolCueHUp:
+PoolCueMUp:
+PoolCueSUp:
+	VJoy_SetAxis(cue_full, vjoy_id, cue_axis)
+	sleep 100
+	VJoy_SetAxis(cue_rest, vjoy_id, cue_axis)
+	start_timers()
+	return
+
+
 ; === Timers
 
 ; Do a pulse
@@ -353,6 +406,9 @@ option_changed_hook(){
 	global TimeoutRate
 	global JoyPrefix
 	global max_buttons
+	global axis_list_vjoy
+	global cue_full, cue_rest, cue_hard, cue_med, cue_soft, cue_axis
+	global CueHard, CueMed, CueSoft, CueAxis, CueFull, CueRest
 
 	; Stop Pulsing
 	stop_timers()
@@ -376,6 +432,18 @@ option_changed_hook(){
 	} else {
 		max_buttons := 0
 	}
+
+	; Pool cue settings
+	cue_full := 32768 * (CueFull / 100)
+	cue_rest := 32768 * (CueRest / 100)
+	cue_hard := 32768 * (CueHard / 100)
+	cue_med := 32768 * (CueMed / 100)
+	cue_soft := 32768 * (CueSoft / 100)
+
+	; Set pool cue axis to middle
+	ax := axis_list_vjoy[CueAxis]
+	cue_axis := HID_USAGE_%ax%
+	VJoy_SetAxis(cue_rest, vjoy_id, cue_axis)
 
 	; Start Pulsing again - possibly with new values
 	start_timers()
