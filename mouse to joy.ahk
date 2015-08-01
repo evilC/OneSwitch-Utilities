@@ -22,12 +22,14 @@ Gui, Tab, 1
 
 Gui, Add, GroupBox, x5 y35 w250 R2, Absolute Mode
 Gui, Add, Text, xm y60, Max Mouse Move Value
-ADHD.gui_add("Edit", "MaxMove", "xp+150 yp-2 w80", "", "4")
+ADHD.gui_add("Edit", "MaxMove", "xp+150 yp-2 w60", "", "4")
 Gui, Add, GroupBox, x5 yp+40 w250 R2, Relative Mode
 Gui, Add, Text, xm yp+20, Move Scale
-ADHD.gui_add("Edit", "MoveScale", "xp+150 yp-2 w80", "", "100")
+ADHD.gui_add("Edit", "MoveScale", "xp+150 yp-2 w60", "", "100")
 ADHD.gui_add("Radio", "AbsMode", "x280 y60 w80 Checked", "Absolute", "")
 ADHD.gui_add("Radio", "RelMode", "x280 y120 w80 ", "Relative", "")
+Gui, Add, Text, xm y170, Center Timeout (ms)
+ADHD.gui_add("Edit", "CenterTimeout", "xp+150 yp-2 w60", "", "20")
 
 ADHD.finish_startup()
 
@@ -67,6 +69,7 @@ MouseMoved(wParam, lParam, code){
 	global AbsMode, RelMode
 	global MoveScale, OutputStick
 	global JoyPos
+	global CenterTimeout
 	static MAX_TIME := 1000000		; Only cache values for this long.
 	; RawInput statics
 	static DeviceSize := 2 * A_PtrSize, iSize := 0, sz := 0, offsets := {x: (20+A_PtrSize*2), y: (24+A_PtrSize*2)}, uRawInput
@@ -82,20 +85,21 @@ MouseMoved(wParam, lParam, code){
 	; Get RawInput data
 	r := DllCall("GetRawInputData", "UInt", lParam, "UInt", 0x10000003, "Ptr", &uRawInput, "UInt*", sz, "UInt", 8 + (A_PtrSize * 2))
 
-	if (AbsMode){
+	if (CalibrateMode){
+		for axis in axes {
+			mv := NumGet(&uRawInput, offsets[axis], "Int")
+			if (abs(mv) > MaxSeenMove){
+				MaxSeenMove := abs(mv)
+			}
+		}
+	} else if (AbsMode){
 		SetTimer, OnTimeout, Off
-		SetTimer, OnTimeout, -20
+		SetTimer, OnTimeout, % "-" CenterTimeout
 		
 		for axis in axes {
 			mv := NumGet(&uRawInput, offsets[axis], "Int")
-			if (CalibrateMode){
-				if (abs(mv) > MaxSeenMove){
-					MaxSeenMove := abs(mv)
-				}
-			} else {
-				ax := (mv * MoveScale) + 16384
-				OutputStick.SetAxisByName(ax,axis)
-			}
+			ax := (mv * MoveScale) + 16384
+			OutputStick.SetAxisByName(ax,axis)
 		}
 	} else {
 		MoveMultiplier := 100
