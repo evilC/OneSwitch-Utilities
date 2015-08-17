@@ -20,16 +20,16 @@ ADHD.create_gui()
 
 Gui, Tab, 1
 
-Gui, Add, GroupBox, x5 y35 w250 R2, Absolute Mode
+Gui, Add, GroupBox, x5 y35 w250 R3, Absolute Mode
 Gui, Add, Text, xm y60, Max Mouse Move Value
 ADHD.gui_add("Edit", "MaxMove", "xp+150 yp-2 w60", "", "4")
+Gui, Add, Text, xm yp+30, Center Timeout (ms)
+ADHD.gui_add("Edit", "CenterTimeout", "xp+150 yp-2 w60", "", "20")
 Gui, Add, GroupBox, x5 yp+40 w250 R2, Relative Mode
 Gui, Add, Text, xm yp+20, Move Scale
 ADHD.gui_add("Edit", "MoveScale", "xp+150 yp-2 w60", "", "100")
-ADHD.gui_add("Radio", "AbsMode", "x280 y60 w80 Checked", "Absolute", "")
-ADHD.gui_add("Radio", "RelMode", "x280 y120 w80 ", "Relative", "")
-Gui, Add, Text, xm y170, Center Timeout (ms)
-ADHD.gui_add("Edit", "CenterTimeout", "xp+150 yp-2 w60", "", "20")
+ADHD.gui_add("Radio", "AbsMode", "x280 y70 w80 Checked", "Absolute", "")
+ADHD.gui_add("Radio", "RelMode", "x280 y150 w80 ", "Relative", "")
 
 ADHD.finish_startup()
 
