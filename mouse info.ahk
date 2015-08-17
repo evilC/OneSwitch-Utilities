@@ -2,9 +2,10 @@
 
 LoggingEnabled := 0
 
-Gui, Add, ListView, % "vMyListView w120 h" A_ScreenHeight,  Time|X|Y
+Gui, Add, ListView, % "vMyListView w170 h" A_ScreenHeight,  Time|X|Y
 LV_ModifyCol(1, 50)
 LV_ModifyCol(2, 50)
+LV_ModifyCol(3, 50)
 Gui, +Resize
 Gui, Show, x0
 
